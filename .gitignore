@@ -1,0 +1,6 @@
+credentials.json
+token.json
+.env
+briefing.log
+__pycache__/
+*.pyc

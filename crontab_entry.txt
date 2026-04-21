@@ -1,0 +1,10 @@
+# Daily 5am Morning Briefing (Mountain Time — adjust TZ if needed)
+# To install:  crontab -e   and paste the line below.
+#
+# The script sources .env for ANTHROPIC_API_KEY, then runs morning_briefing.py.
+# Output is appended to briefing.log.
+
+SHELL=/bin/bash
+PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin:/opt/node22/bin
+
+0 5 * * * cd /home/user/ClaudeRoutines && source .env 2>/dev/null && export ANTHROPIC_API_KEY && /usr/local/bin/python3 morning_briefing.py >> /home/user/ClaudeRoutines/briefing.log 2>&1
