@@ -2,9 +2,9 @@ name: Daily Morning Digest
 
 on:
   schedule:
-    # 5:00 AM UTC every day.
+    # 5:00 AM Mountain every day.
     # Adjust the hour for your timezone — e.g. use 10 for 5 AM US Eastern (ET = UTC-5).
-    - cron: '0 5 * * *'
+    - cron: '0 12 * * *'
   workflow_dispatch:   # lets you trigger it manually from the Actions tab to test
 
 jobs:
