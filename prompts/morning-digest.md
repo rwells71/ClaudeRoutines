@@ -39,6 +39,7 @@ transactional, human-sent, or important system notifications.
 ## Step 3 — Fetch today's non-recurring calendar events
 
 Call `list_events` with:
+- `calendarId`: `primary`
 - `startTime`: today at `00:00:00` in Mountain Time (ISO 8601 with offset, e.g. `2026-04-25T00:00:00-06:00`)
 - `endTime`: today at `23:59:59` in Mountain Time
 - `timeZone`: `America/Denver`
@@ -165,6 +166,9 @@ Call `create_draft` with the following fields:
 After `create_draft` returns a `messageId`, call `label_message` with:
 - `messageId`: the ID returned by `create_draft`
 - `addLabelIds`: `["INBOX"]`
+
+`INBOX` is a Gmail system label — its ID is literally the string `"INBOX"`.
+Do **not** call `list_labels` to look it up; use `"INBOX"` directly.
 
 This moves the draft to the Inbox so it arrives like a normal email rather
 than sitting silently in the Drafts folder.
