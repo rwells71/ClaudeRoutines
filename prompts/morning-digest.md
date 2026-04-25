@@ -19,7 +19,7 @@ The digest runs at 5:00 AM Mountain Time. Calculate:
 ## Step 2 — Fetch recent emails
 
 Call `search_threads` with:
-- `query`: `newer_than:1d`
+- `query`: `newer_than:1d -category:promotions -category:social -category:updates`
 - `pageSize`: 50
 
 Repeat with `pageToken` if the response includes one, until all threads are
@@ -29,9 +29,10 @@ For each thread, examine the snippet and message metadata already returned.
 If the full body is needed to understand key points or action items, call
 `get_thread` with that thread's ID.
 
-**Skip** clearly automated mail (marketing, newsletters, noreply senders,
-unsubscribe-list messages). Include everything else — transactional, human,
-or important system notifications.
+**Skip** clearly automated mail: marketing emails, newsletters, messages from
+`noreply@`, `no-reply@`, `donotreply@`, or `notifications@` addresses, and any
+message with an `List-Unsubscribe` header. Include everything else —
+transactional, human-sent, or important system notifications.
 
 ---
 
@@ -43,8 +44,11 @@ Call `list_events` with:
 - `timeZone`: `America/Denver`
 - `orderBy`: `startTime`
 
-From the results, **keep only events that do NOT have a `recurringEventId`
-field**. These are one-time events. Drop any event that belongs to a
+From the results, **keep only events where ALL of the following are true**:
+1. The event does NOT have a `recurringEventId` field.
+2. The event does NOT have a `recurrence` field.
+
+These are genuinely one-time events. Drop anything that belongs to a
 recurring series.
 
 ---
@@ -69,18 +73,26 @@ For each non-recurring event:
 
 ## Step 5 — Determine the account owner's email address
 
-Look at the "To:" fields of the emails you fetched. The address that appears
-most frequently as a recipient is the account owner's email. Use that address
-as both the **To** field and as a fallback if you cannot determine it from
-any other signal.
+Use the following strategy, in order, stopping at the first successful result:
+
+1. Look at the **"To:"** field of every email fetched. Collect all recipient
+   addresses. The address that appears most frequently is almost certainly the
+   account owner's address — use that.
+2. If there is a tie, prefer the address whose domain matches the majority of
+   the other addresses in the "To:" fields.
+3. If still ambiguous, use the first address found in any "To:" field.
+
+Store this address as `{owner_email}`.
 
 ---
 
-## Step 6 — Create the digest draft
+## Step 6 — Create and label the digest draft
+
+### 6a — Create the draft
 
 Call `create_draft` with the following fields:
 
-**`to`**: `["{account_owner_email}"]`
+**`to`**: `["{owner_email}"]`
 
 **`subject`**: `Morning Digest — {Weekday}, {Month} {Day}, {Year}`
   e.g. `Morning Digest — Friday, April 25, 2026`
@@ -147,6 +159,20 @@ Call `create_draft` with the following fields:
 </body>
 </html>
 ```
+
+### 6b — Label the draft for easy retrieval
+
+After `create_draft` returns a `messageId`, call `label_message` with:
+- `messageId`: the ID returned by `create_draft`
+- `addLabelIds`: `["INBOX"]`
+
+This moves the draft to the Inbox so it arrives like a normal email rather
+than sitting silently in the Drafts folder.
+
+> **Note**: The Gmail MCP integration does not expose a send API. The digest
+> is delivered by placing it directly in the Inbox via label assignment.
+> If a `send_message` or `send_draft` tool becomes available in a future
+> version, prefer that over `label_message`.
 
 ---
 
