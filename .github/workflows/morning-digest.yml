@@ -1,0 +1,43 @@
+name: Morning Email & Calendar Digest
+
+# Runs at 5:00 AM Mountain Time every day.
+# Two cron entries handle the DST shift:
+#   0 11 * 3-10 *      → 5 AM MDT (UTC-6), March – October
+#   0 12 * 1,2,11,12 * → 5 AM MST (UTC-7), November – February
+on:
+  schedule:
+    - cron: '0 11 * 3-10 *'
+    - cron: '0 12 * 1,2,11,12 *'
+  workflow_dispatch: {}   # Manual trigger for testing
+
+jobs:
+  morning-digest:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Read digest prompt
+        id: prompt
+        run: |
+          {
+            echo 'content<<PROMPT_EOF'
+            cat prompts/morning-digest.md
+            echo 'PROMPT_EOF'
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Run Morning Email & Calendar Digest
+        uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          prompt: ${{ steps.prompt.outputs.content }}
+          # Allow the Gmail and Google Calendar MCP tools plus read-only Bash
+          claude_args: >-
+            --allowedTools
+            "mcp__Gmail__search_threads,mcp__Gmail__get_thread,mcp__Gmail__create_draft,mcp__Google-Calendar__list_events"
