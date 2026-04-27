@@ -42,6 +42,11 @@ jobs:
             mcp__Gmail__get_thread
             mcp__Gmail__create_draft
             mcp__Gmail__label_message
+            mcp__Gmail__label_thread
+            mcp__Gmail__list_drafts
             mcp__Gmail__list_labels
+            mcp__Gmail__unlabel_message
+            mcp__Gmail__unlabel_thread
             mcp__Google-Calendar__list_calendars
             mcp__Google-Calendar__list_events
+            mcp__Google-Calendar__get_event
