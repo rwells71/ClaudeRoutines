@@ -9,8 +9,8 @@ Complete every step below in order. Do not skip any step.
 
 The digest runs at 5:00 AM Mountain Time. Calculate:
 
-- **Email window**: the 24-hour period ending right now (i.e. the last 24 hours).
-  Gmail query: `newer_than:1d`
+- **Email window**: the 7-day period ending right now (i.e. the last week).
+  Gmail query: `newer_than:7d`
 - **Calendar window**: today (the current date in Mountain Time), from
   `00:00:00` to `23:59:59`, timezone `America/Denver`.
 
@@ -19,11 +19,11 @@ The digest runs at 5:00 AM Mountain Time. Calculate:
 ## Step 2 — Fetch recent emails
 
 Call `search_threads` with:
-- `query`: `newer_than:1d -category:promotions -category:social -category:updates`
+- `query`: `newer_than:7d -category:promotions -category:social -category:updates`
 - `pageSize`: 50
 
 Repeat with `pageToken` if the response includes one, until all threads are
-collected.
+collected (up to a maximum of 200 threads).
 
 For each thread, examine the snippet and message metadata already returned.
 If the full body is needed to understand key points or action items, call
@@ -31,7 +31,7 @@ If the full body is needed to understand key points or action items, call
 
 **Skip** clearly automated mail: marketing emails, newsletters, messages from
 `noreply@`, `no-reply@`, `donotreply@`, or `notifications@` addresses, and any
-message with an `List-Unsubscribe` header. Include everything else —
+message with a `List-Unsubscribe` header. Include everything else —
 transactional, human-sent, or important system notifications.
 
 ---
@@ -49,26 +49,44 @@ From the results, **keep only events where ALL of the following are true**:
 1. The event does NOT have a `recurringEventId` field.
 2. The event does NOT have a `recurrence` field.
 
-These are genuinely one-time events. Drop anything that belongs to a
-recurring series.
+These are genuinely one-time, out-of-the-ordinary events. Drop anything that
+belongs to a recurring series (e.g. weekly standups, daily meetings).
 
 ---
 
-## Step 4 — Summarize
+## Step 4 — Build the Top 10 action items list
 
-### Emails
-Group by sender (use the sender's display name and email address as the heading).
-For each sender, list every email they sent in the window. For each email:
-- Subject line
-- 2–4 bullets covering the key points
-- A separate "Action Items" section with concrete, specific tasks required of the reader (omit this section if there are none)
+### Prioritization criteria
 
-### Calendar events
-For each non-recurring event:
-- Start and end time (Mountain Time, e.g. "9:00 AM – 10:00 AM MT")
-- Event title
-- Location or video link (if present)
-- One-line description excerpt (if present)
+Review all qualifying emails from the last 7 days. For each email, identify
+any concrete action required of the account owner. Then rank every action item
+by **priority**, using these factors (highest weight first):
+
+1. **Explicit deadline or urgency signal** — words like "urgent", "ASAP",
+   "by [date]", "deadline", "today", "this week"
+2. **Direct question or request** from a known human sender
+3. **Financial or legal content** — invoices, contracts, approvals required
+4. **Meeting or event coordination** — scheduling, RSVPs, agenda items
+5. **Recency** — more recent emails rank higher when other factors are equal
+
+Select the **top 10** highest-priority action items across all emails. If
+fewer than 10 qualifying action items exist, include all of them.
+
+For each action item in the top 10, record:
+- **Priority rank** (1 = most urgent)
+- **Action**: one concrete sentence describing what must be done
+  (e.g. "Reply to Alice by Friday confirming attendance at the board meeting")
+- **Source**: sender name + subject line + email date
+  (e.g. "Alice Smith — 'Board Meeting' — Apr 23")
+- **Context**: 1–2 sentences of background if needed to act without opening
+  the email
+
+### Calendar action items
+
+If any non-recurring calendar events were found in Step 3, also note any
+preparation or logistics required for each event
+(e.g. "Prepare slides for 2 PM client presentation"). These do not count
+against the top-10 email action items limit.
 
 ---
 
@@ -110,49 +128,44 @@ Call `create_draft` with the following fields:
 </h2>
 <p style="color: #666; font-size: 0.9em;">Generated at 5:00 AM Mountain Time</p>
 
-<!-- ====== EMAIL SECTION ====== -->
-<h3 style="margin-top: 28px;">&#128139; Email Summary &mdash; Last 24 Hours</h3>
+<!-- ====== TOP 10 ACTION ITEMS ====== -->
+<h3 style="margin-top: 28px;">&#128221; Top 10 Action Items &mdash; Last 7 Days</h3>
 
-<!-- Repeat the block below for each unique sender -->
-<div style="margin-bottom: 20px; padding: 12px; background: #f9f9f9; border-left: 4px solid #4A90D9;">
-  <h4 style="margin: 0 0 6px 0;">{Sender Name} &lt;{sender@example.com}&gt;</h4>
-  <p style="margin: 0 0 4px 0;"><strong>Subject:</strong> {email subject}</p>
-  <ul style="margin: 4px 0 0 0;">
-    <li><strong>Key Points:</strong>
-      <ul>
-        <li>{point 1}</li>
-        <li>{point 2}</li>
-      </ul>
-    </li>
-    <!-- Only include if there are action items -->
-    <li><strong>Action Items:</strong>
-      <ul>
-        <li>{action item}</li>
-      </ul>
-    </li>
-  </ul>
+<!-- Repeat the block below for each action item (rank 1 through 10) -->
+<div style="margin-bottom: 16px; padding: 12px; background: #f9f9f9; border-left: 4px solid #4A90D9; border-radius: 2px;">
+  <p style="margin: 0 0 4px 0;">
+    <span style="font-size: 1.1em; font-weight: bold; color: #4A90D9;">#{Rank}</span>
+    &nbsp;<strong>{Action — one concrete sentence}</strong>
+  </p>
+  <p style="margin: 4px 0 0 0; font-size: 0.85em; color: #555;">
+    <strong>Source:</strong> {Sender Name} &mdash; &ldquo;{Subject}&rdquo; &mdash; {Date}
+  </p>
+  <!-- Only include if context helps the reader act without opening the email -->
+  <p style="margin: 4px 0 0 0; font-size: 0.85em; color: #666;">{1–2 sentence context}</p>
 </div>
-<!-- End sender block -->
+<!-- End action item block -->
 
-<!-- If no qualifying emails were found, replace sender blocks with: -->
-<!-- <p><em>No emails received in the last 24 hours.</em></p> -->
+<!-- If no qualifying action items were found, replace all blocks with: -->
+<!-- <p><em>No action items found in emails from the last 7 days.</em></p> -->
 
 <!-- ====== CALENDAR SECTION ====== -->
 <h3 style="margin-top: 28px; border-top: 1px solid #ddd; padding-top: 16px;">
-  &#128197; Non-Recurring Calendar Events Today
+  &#128197; Out-of-the-Ordinary Calendar Events Today
 </h3>
 
 <!-- Repeat for each non-recurring event -->
-<div style="margin-bottom: 12px; padding: 10px; background: #f0f7ff; border-left: 4px solid #27AE60;">
+<div style="margin-bottom: 12px; padding: 10px; background: #f0f7ff; border-left: 4px solid #27AE60; border-radius: 2px;">
   <p style="margin: 0;"><strong>{Start Time} &ndash; {End Time} MT</strong> &mdash; {Event Title}</p>
   <!-- Only include lines below if the data exists -->
   <p style="margin: 4px 0 0 18px; color: #555;">&#128205; {Location or video link}</p>
   <p style="margin: 4px 0 0 18px; color: #555;">{Brief description}</p>
+  <!-- Only include if preparation is needed -->
+  <p style="margin: 4px 0 0 18px; color: #E67E22;"><strong>Prep needed:</strong> {preparation action}</p>
 </div>
 <!-- End event block -->
 
 <!-- If no non-recurring events today, replace event blocks with: -->
-<!-- <p><em>No one-time calendar events scheduled for today.</em></p> -->
+<!-- <p><em>No out-of-the-ordinary calendar events scheduled for today.</em></p> -->
 
 <hr style="margin-top: 32px;"/>
 <p style="font-size: 0.8em; color: #999;">Automated digest &mdash; ClaudeRoutines</p>
@@ -161,7 +174,7 @@ Call `create_draft` with the following fields:
 </html>
 ```
 
-### 6b — Label the draft for easy retrieval
+### 6b — Label the draft for delivery
 
 After `create_draft` returns a `messageId`, call `label_message` with:
 - `messageId`: the ID returned by `create_draft`
@@ -182,12 +195,12 @@ than sitting silently in the Drafts folder.
 
 ## Important rules
 
-- If there are **no emails**, say so clearly; do not omit the section.
+- If there are **no action items**, say so clearly; do not omit the section.
 - If there are **no non-recurring calendar events**, say so clearly; do not omit the section.
-- Keep email summaries concise: maximum 4 bullets per email.
-- Action items must be concrete ("Reply to Alice confirming the meeting time")
-  not vague ("Follow up").
+- Action items must be concrete ("Reply to Alice confirming the meeting time by Friday"),
+  not vague ("Follow up" or "Handle email").
+- Prioritize ruthlessly: only the genuinely most time-sensitive and impactful items
+  make the top 10.
 - Strip tracking pixels and HTML boilerplate from email bodies before summarizing.
 - Never include raw HTML or JSON in the digest body.
-- If multiple emails from the same sender arrive in the window, group them all
-  under one sender heading with separate subject/key-points/action-items blocks.
+- Do not include automated notifications, marketing, or newsletters as action items.
