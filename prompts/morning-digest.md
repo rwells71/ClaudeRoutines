@@ -82,6 +82,10 @@ Use the following strategy, in order, stopping at the first successful result:
 2. If there is a tie, prefer the address whose domain matches the majority of
    the other addresses in the "To:" fields.
 3. If still ambiguous, use the first address found in any "To:" field.
+4. **If no emails were fetched** (empty inbox window), use the `id` field of
+   the primary calendar returned by `list_calendars` in Step 3. The primary
+   calendar's `id` is the account owner's email address. Look for the calendar
+   entry where `primary` is `true` or where `accessRole` is `owner`.
 
 Store this address as `{owner_email}`.
 

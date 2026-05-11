@@ -6,7 +6,13 @@ name: Morning Email & Calendar Digest
 #   0 12 * 1,2,11,12 * → 5 AM MST (UTC-7), November – February
 on:
   schedule:
+    # 5:00 AM MDT (UTC-6) — applies March through October.
+    # Note: US DST starts the 2nd Sunday of March, so for the first ~8 days of
+    # March the clock is still MST and this fires at 4 AM MT. Acceptable drift.
     - cron: '0 11 * 3-10 *'
+    # 5:00 AM MST (UTC-7) — applies November through February.
+    # US DST ends the 1st Sunday of November, so Nov 1 may fire at 6 AM MT in
+    # years where DST ends on that exact date. Acceptable one-day drift.
     - cron: '0 12 * 1,2,11,12 *'
   workflow_dispatch: {}   # Manual trigger for testing
 
