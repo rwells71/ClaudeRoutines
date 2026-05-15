@@ -38,16 +38,26 @@ transactional, human-sent, or important system notifications.
 
 ## Step 3 — Fetch today's non-recurring calendar events
 
-Call `list_events` with:
-- `calendarId`: `primary`
+### 3a — Discover calendars
+
+Call `list_calendars` to retrieve all accessible calendars.
+From the result, build a working list of calendar IDs to query.
+If the call fails or returns an empty list, fall back to `["primary"]`.
+
+### 3b — Fetch events from each calendar
+
+For **each** calendar ID from step 3a, call `list_events` with:
+- `calendarId`: the calendar's `id` (or `"primary"` for the fallback)
 - `startTime`: today at `00:00:00` in Mountain Time (ISO 8601 with offset, e.g. `2026-04-25T00:00:00-06:00`)
 - `endTime`: today at `23:59:59` in Mountain Time
 - `timeZone`: `America/Denver`
 - `orderBy`: `startTime`
 
-From the results, **keep only events where ALL of the following are true**:
-1. The event does NOT have a `recurringEventId` field.
-2. The event does NOT have a `recurrence` field.
+After collecting events from all calendars:
+- **Deduplicate**: if the same event ID appears in multiple calendars, keep it once.
+- **Keep only events where ALL of the following are true**:
+  1. The event does NOT have a `recurringEventId` field.
+  2. The event does NOT have a `recurrence` field.
 
 These are genuinely one-time events. Drop anything that belongs to a
 recurring series.
@@ -146,6 +156,7 @@ Call `create_draft` with the following fields:
 <div style="margin-bottom: 12px; padding: 10px; background: #f0f7ff; border-left: 4px solid #27AE60;">
   <p style="margin: 0;"><strong>{Start Time} &ndash; {End Time} MT</strong> &mdash; {Event Title}</p>
   <!-- Only include lines below if the data exists -->
+  <p style="margin: 4px 0 0 18px; color: #555;">&#128197; {Calendar name, if not the primary calendar}</p>
   <p style="margin: 4px 0 0 18px; color: #555;">&#128205; {Location or video link}</p>
   <p style="margin: 4px 0 0 18px; color: #555;">{Brief description}</p>
 </div>
@@ -161,22 +172,29 @@ Call `create_draft` with the following fields:
 </html>
 ```
 
-### 6b — Label the draft for easy retrieval
+### 6b — Deliver the digest to the Inbox
 
-After `create_draft` returns a `messageId`, call `label_message` with:
+After `create_draft` returns a `messageId`, perform these two calls in order:
+
+**Call 1** — `label_message`:
 - `messageId`: the ID returned by `create_draft`
 - `addLabelIds`: `["INBOX"]`
 
-`INBOX` is a Gmail system label — its ID is literally the string `"INBOX"`.
-Do **not** call `list_labels` to look it up; use `"INBOX"` directly.
+**Call 2** — `unlabel_message`:
+- `messageId`: the same ID
+- `removeLabelIds`: `["DRAFT"]`
 
-This moves the draft to the Inbox so it arrives like a normal email rather
-than sitting silently in the Drafts folder.
+`INBOX` and `DRAFT` are Gmail system labels — their IDs are literally the
+strings `"INBOX"` and `"DRAFT"`. Do **not** call `list_labels` to look them
+up; use these strings directly.
 
-> **Note**: The Gmail MCP integration does not expose a send API. The digest
-> is delivered by placing it directly in the Inbox via label assignment.
-> If a `send_message` or `send_draft` tool becomes available in a future
-> version, prefer that over `label_message`.
+Removing the `DRAFT` label after adding `INBOX` delivers the message as a
+normal received email rather than showing it with a "Draft" badge.
+
+> **Note**: The Gmail MCP integration does not expose a send API. This
+> two-step label manipulation is the delivery mechanism. If a
+> `send_message` or `send_draft` tool becomes available in a future
+> version, prefer that instead.
 
 ---
 
