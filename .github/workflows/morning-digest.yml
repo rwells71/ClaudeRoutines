@@ -1,47 +1,34 @@
-name: Morning Email & Calendar Digest
+name: Morning Digest
 
-# Runs at 5:00 AM Mountain Time every day.
-# Two cron entries handle the DST shift:
-#   0 11 * 3-10 *      → 5 AM MDT (UTC-6), March – October
-#   0 12 * 1,2,11,12 * → 5 AM MST (UTC-7), November – February
 on:
   schedule:
-    - cron: '0 11 * 3-10 *'
-    - cron: '0 12 * 1,2,11,12 *'
-  workflow_dispatch: {}   # Manual trigger for testing
+    # 5:00 AM MDT (UTC-6) = 11:00 UTC  |  winter MST (UTC-7) = 12:00 UTC
+    # Fires at 11:00 UTC year-round; adjust to "0 12 * * *" Nov-Mar if desired.
+    - cron: "0 11 * * *"
+  workflow_dispatch: # manual trigger for testing
 
 jobs:
-  morning-digest:
+  send-digest:
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      id-token: write
+    timeout-minutes: 10
 
     steps:
-      - name: Checkout repository
+      - name: Checkout
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 1
 
-      - name: Read digest prompt
-        id: prompt
-        run: |
-          {
-            echo 'content<<PROMPT_EOF'
-            cat prompts/morning-digest.md
-            echo 'PROMPT_EOF'
-          } >> "$GITHUB_OUTPUT"
-
-      - name: Run Morning Email & Calendar Digest
-        uses: anthropics/claude-code-action@v1
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
         with:
-          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-          prompt: ${{ steps.prompt.outputs.content }}
-          allowed_tools: |
-            mcp__Gmail__search_threads
-            mcp__Gmail__get_thread
-            mcp__Gmail__create_draft
-            mcp__Gmail__label_message
-            mcp__Gmail__list_labels
-            mcp__Google-Calendar__list_calendars
-            mcp__Google-Calendar__list_events
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run morning digest
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          GOOGLE_CREDENTIALS_JSON: ${{ secrets.GOOGLE_CREDENTIALS_JSON }}
+          GOOGLE_TOKEN_JSON: ${{ secrets.GOOGLE_TOKEN_JSON }}
+          OWNER_EMAIL: ${{ secrets.OWNER_EMAIL }}
+        run: python daily_summary.py
