@@ -1,9 +1,14 @@
-name: Morning Email & Calendar Digest
+name: Morning Briefing — Top 10
 
 # Runs at 5:00 AM Mountain Time every day.
 # Two cron entries handle the DST shift:
 #   0 11 * 3-10 *      → 5 AM MDT (UTC-6), March – October
 #   0 12 * 1,2,11,12 * → 5 AM MST (UTC-7), November – February
+#
+# Required GitHub Secret:
+#   CLAUDE_CODE_OAUTH_TOKEN  — your Claude.ai session token
+#     Get it at: https://claude.ai → Settings → Connections → "Copy token"
+#     The token carries your Gmail + Calendar MCP integrations automatically.
 on:
   schedule:
     - cron: '0 11 * 3-10 *'
@@ -11,7 +16,7 @@ on:
   workflow_dispatch: {}   # Manual trigger for testing
 
 jobs:
-  morning-digest:
+  morning-briefing:
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -32,7 +37,7 @@ jobs:
             echo 'PROMPT_EOF'
           } >> "$GITHUB_OUTPUT"
 
-      - name: Run Morning Email & Calendar Digest
+      - name: Run Morning Briefing
         uses: anthropics/claude-code-action@v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
