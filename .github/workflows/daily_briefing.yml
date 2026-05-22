@@ -1,0 +1,38 @@
+name: Daily Morning Briefing
+
+on:
+  schedule:
+    # 5:00 AM Mountain Daylight Time (MDT) = 11:00 AM UTC (summer)
+    # 5:00 AM Mountain Standard Time (MST) = 12:00 PM UTC (winter)
+    # We run both to cover daylight saving transitions:
+    - cron: "0 11 * * *"   # summer (MDT, Mar–Nov)
+    - cron: "0 12 * * *"   # winter (MST, Nov–Mar)
+  workflow_dispatch:        # allow manual trigger for testing
+
+jobs:
+  send-briefing:
+    runs-on: ubuntu-latest
+    # Prevent double-fire on DST boundary days (both crons fire within same hour)
+    concurrency:
+      group: daily-briefing-${{ github.run_id }}
+      cancel-in-progress: false
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run daily briefing
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          GOOGLE_TOKEN_JSON: ${{ secrets.GOOGLE_TOKEN_JSON }}
+          GOOGLE_CREDENTIALS_JSON: ${{ secrets.GOOGLE_CREDENTIALS_JSON }}
+          RECIPIENT_EMAIL: ${{ secrets.RECIPIENT_EMAIL }}
+        run: python daily_briefing.py
