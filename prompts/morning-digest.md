@@ -56,19 +56,30 @@ recurring series.
 
 ## Step 4 — Summarize
 
-### Emails
-Group by sender (use the sender's display name and email address as the heading).
-For each sender, list every email they sent in the window. For each email:
-- Subject line
-- 2–4 bullets covering the key points
-- A separate "Action Items" section with concrete, specific tasks required of the reader (omit this section if there are none)
+### Top 10 Action Items
+Review ALL emails and calendar events. Produce a single ranked list of the
+**10 most important things** the account owner needs to act on today or this week.
+Order by urgency (deadlines first, then important people, then reminders).
 
-### Calendar events
-For each non-recurring event:
-- Start and end time (Mountain Time, e.g. "9:00 AM – 10:00 AM MT")
+For each item:
+- **Bold title** (5–8 words)
+- One concise sentence explaining what action is needed and why
+
+Skip marketing, newsletters, and purely informational messages unless they
+contain a deadline or direct request.
+
+### Out-of-Ordinary Calendar Events
+From the calendar results, highlight events that are NOT routine. An event is
+"out of the ordinary" if it:
+- Has no `recurringEventId` (it's a one-time event), **OR**
+- Is a recurring event that has been recently created, updated, or canceled, **OR**
+- Spans more than 2 hours, **OR**
+- Involves an unusual commitment (moves, hikes, special meetings, travel)
+
+For each qualifying event:
+- Date and time (Mountain Time)
 - Event title
-- Location or video link (if present)
-- One-line description excerpt (if present)
+- One sentence on why it stands out or what preparation is needed
 
 ---
 
@@ -103,80 +114,61 @@ Call `create_draft` with the following fields:
 ```html
 <!DOCTYPE html>
 <html>
-<body style="font-family: Arial, sans-serif; max-width: 700px; margin: auto; color: #222;">
+<body style="font-family: Arial, sans-serif; max-width: 650px; margin: auto; color: #222;">
 
-<h2 style="border-bottom: 2px solid #4A90D9; padding-bottom: 8px;">
-  Morning Digest &mdash; {Weekday}, {Month} {Day}, {Year}
+<h2 style="border-bottom: 2px solid #2c5f8a; padding-bottom: 8px; color: #2c5f8a;">
+  Daily Briefing &mdash; {Weekday}, {Month} {Day}, {Year}
 </h2>
-<p style="color: #666; font-size: 0.9em;">Generated at 5:00 AM Mountain Time</p>
+<p style="color: #888; font-size: 0.85em;">Generated at 5:00 AM Mountain Time</p>
 
-<!-- ====== EMAIL SECTION ====== -->
-<h3 style="margin-top: 28px;">&#128139; Email Summary &mdash; Last 24 Hours</h3>
+<!-- ====== TOP 10 ACTION ITEMS ====== -->
+<h3 style="color: #c0392b; margin-top: 24px;">&#128203; Top 10 Action Items</h3>
+<ol style="line-height: 1.9; padding-left: 20px;">
+  <!-- Repeat one <li> per action item, ordered by urgency -->
+  <li><strong>{Bold title}</strong> &mdash; {One sentence explaining what to do and why.}</li>
+  <!-- ... up to 10 items ... -->
+</ol>
+<!-- If there are fewer than 10 genuine action items, list only as many as exist. -->
 
-<!-- Repeat the block below for each unique sender -->
-<div style="margin-bottom: 20px; padding: 12px; background: #f9f9f9; border-left: 4px solid #4A90D9;">
-  <h4 style="margin: 0 0 6px 0;">{Sender Name} &lt;{sender@example.com}&gt;</h4>
-  <p style="margin: 0 0 4px 0;"><strong>Subject:</strong> {email subject}</p>
-  <ul style="margin: 4px 0 0 0;">
-    <li><strong>Key Points:</strong>
-      <ul>
-        <li>{point 1}</li>
-        <li>{point 2}</li>
-      </ul>
-    </li>
-    <!-- Only include if there are action items -->
-    <li><strong>Action Items:</strong>
-      <ul>
-        <li>{action item}</li>
-      </ul>
-    </li>
-  </ul>
-</div>
-<!-- End sender block -->
-
-<!-- If no qualifying emails were found, replace sender blocks with: -->
-<!-- <p><em>No emails received in the last 24 hours.</em></p> -->
-
-<!-- ====== CALENDAR SECTION ====== -->
-<h3 style="margin-top: 28px; border-top: 1px solid #ddd; padding-top: 16px;">
-  &#128197; Non-Recurring Calendar Events Today
+<!-- ====== OUT-OF-ORDINARY CALENDAR EVENTS ====== -->
+<h3 style="color: #8e44ad; margin-top: 28px; border-top: 1px solid #eee; padding-top: 16px;">
+  &#128197; Out-of-Ordinary Calendar Events
 </h3>
+<!-- Repeat one row per qualifying event -->
+<table style="width:100%; border-collapse:collapse; font-size:14px;">
+  <tr style="background:#f5f0ff;">
+    <td style="padding:10px; border:1px solid #ddd; width:35%;">
+      <strong>{Date}</strong><br>{Start Time} &ndash; {End Time} MT
+    </td>
+    <td style="padding:10px; border:1px solid #ddd;">
+      <strong>{Event Title}</strong><br>
+      <span style="color:#555;">{One sentence: why it stands out or what to prepare.}</span>
+    </td>
+  </tr>
+  <!-- ... -->
+</table>
+<!-- If no out-of-ordinary events, replace table with: -->
+<!-- <p><em>No unusual events this week.</em></p> -->
 
-<!-- Repeat for each non-recurring event -->
-<div style="margin-bottom: 12px; padding: 10px; background: #f0f7ff; border-left: 4px solid #27AE60;">
-  <p style="margin: 0;"><strong>{Start Time} &ndash; {End Time} MT</strong> &mdash; {Event Title}</p>
-  <!-- Only include lines below if the data exists -->
-  <p style="margin: 4px 0 0 18px; color: #555;">&#128205; {Location or video link}</p>
-  <p style="margin: 4px 0 0 18px; color: #555;">{Brief description}</p>
-</div>
-<!-- End event block -->
-
-<!-- If no non-recurring events today, replace event blocks with: -->
-<!-- <p><em>No one-time calendar events scheduled for today.</em></p> -->
-
-<hr style="margin-top: 32px;"/>
-<p style="font-size: 0.8em; color: #999;">Automated digest &mdash; ClaudeRoutines</p>
+<hr style="margin-top: 32px; border: none; border-top: 1px solid #eee;"/>
+<p style="font-size: 0.75em; color: #aaa;">Automated digest &mdash; ClaudeRoutines</p>
 
 </body>
 </html>
 ```
 
-### 6b — Label the draft for easy retrieval
+### 6b — Confirm draft creation
 
-After `create_draft` returns a `messageId`, call `label_message` with:
-- `messageId`: the ID returned by `create_draft`
-- `addLabelIds`: `["INBOX"]`
+After `create_draft` succeeds, print a single confirmation line:
 
-`INBOX` is a Gmail system label — its ID is literally the string `"INBOX"`.
-Do **not** call `list_labels` to look it up; use `"INBOX"` directly.
+```
+Digest draft created: "<subject line>"
+```
 
-This moves the draft to the Inbox so it arrives like a normal email rather
-than sitting silently in the Drafts folder.
-
-> **Note**: The Gmail MCP integration does not expose a send API. The digest
-> is delivered by placing it directly in the Inbox via label assignment.
-> If a `send_message` or `send_draft` tool becomes available in a future
-> version, prefer that over `label_message`.
+Do **not** call `label_message` or `list_labels`. The Gmail MCP only has
+`gmail.compose` scope; any attempt to modify labels returns 403.
+Delivery to the inbox is handled by the `deliver_digest.py` step that runs
+after this Claude step in the GitHub Actions workflow.
 
 ---
 
