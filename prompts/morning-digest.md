@@ -161,22 +161,20 @@ Call `create_draft` with the following fields:
 </html>
 ```
 
-### 6b — Label the draft for easy retrieval
+### 6b — Delivery note
 
-After `create_draft` returns a `messageId`, call `label_message` with:
-- `messageId`: the ID returned by `create_draft`
-- `addLabelIds`: `["INBOX"]`
+The Gmail MCP integration does not expose a send API, and the Gmail API
+does not permit adding the `INBOX` label to a draft message (drafts exist
+in a special system state). As a result the digest will remain in the
+**Drafts** folder after this routine completes.
 
-`INBOX` is a Gmail system label — its ID is literally the string `"INBOX"`.
-Do **not** call `list_labels` to look it up; use `"INBOX"` directly.
+If a `send_message` or `send_draft` tool becomes available in a future
+version of the MCP integration, add this step:
 
-This moves the draft to the Inbox so it arrives like a normal email rather
-than sitting silently in the Drafts folder.
+    send_draft(draftId: <id returned by create_draft>)
 
-> **Note**: The Gmail MCP integration does not expose a send API. The digest
-> is delivered by placing it directly in the Inbox via label assignment.
-> If a `send_message` or `send_draft` tool becomes available in a future
-> version, prefer that over `label_message`.
+Until then, **skip any attempt to call `label_message` or `label_thread`
+with `INBOX`** — both will fail with HTTP 403.
 
 ---
 
