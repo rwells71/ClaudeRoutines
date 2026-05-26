@@ -1,180 +1,168 @@
 # Morning Email & Calendar Digest
 
-You are running an automated morning digest routine for the account owner.
+You are running an automated morning digest for the account owner (richardlwells@gmail.com).
 Complete every step below in order. Do not skip any step.
 
 ---
 
-## Step 1 — Establish the time window
+## Step 1 — Establish the time windows
 
 The digest runs at 5:00 AM Mountain Time. Calculate:
 
-- **Email window**: the 24-hour period ending right now (i.e. the last 24 hours).
-  Gmail query: `newer_than:1d`
-- **Calendar window**: today (the current date in Mountain Time), from
-  `00:00:00` to `23:59:59`, timezone `America/Denver`.
+- **Email window**: the last 7 days ending right now.
+  Gmail query: `newer_than:7d`
+- **Calendar window**: today plus the next 6 days (7 days total) in Mountain
+  Time, from `00:00:00` today to `23:59:59` six days from now, timezone
+  `America/Denver`.
 
 ---
 
-## Step 2 — Fetch recent emails
+## Step 2 — Fetch emails from the last 7 days
 
 Call `search_threads` with:
-- `query`: `newer_than:1d -category:promotions -category:social -category:updates`
+- `query`: `newer_than:7d -in:draft -in:sent`
 - `pageSize`: 50
 
 Repeat with `pageToken` if the response includes one, until all threads are
-collected.
+collected (cap at 150 threads to stay within context).
 
-For each thread, examine the snippet and message metadata already returned.
-If the full body is needed to understand key points or action items, call
-`get_thread` with that thread's ID.
+For each thread, use the snippet and metadata. Call `get_thread` only if the
+snippet is insufficient to understand whether action is required.
 
-**Skip** clearly automated mail: marketing emails, newsletters, messages from
-`noreply@`, `no-reply@`, `donotreply@`, or `notifications@` addresses, and any
-message with an `List-Unsubscribe` header. Include everything else —
-transactional, human-sent, or important system notifications.
+**Always skip** these — they are noise, never action items:
+- Marketing / promotional / newsletter emails
+- Automated notifications from `noreply@`, `no-reply@`, `donotreply@`,
+  `notifications@`, calendar-notification@google.com, voice-noreply@google.com,
+  or `*@info*.*.com` / `*@reply.*.com` marketing domains
+- Messages the owner sent themselves (sender == owner)
+- Routine calendar reminder notifications
+
+**Always include** these even if they come from automated addresses:
+- Security alerts (login, card-not-present, fraud, account changes)
+- Home or device alerts (smoke alarm, air quality, security cameras)
+- Financial transaction confirmations
+- Package / shipping notifications
+- Human-written messages or replies
 
 ---
 
-## Step 3 — Fetch today's non-recurring calendar events
+## Step 3 — Fetch the next 7 days of calendar events
 
 Call `list_events` with:
 - `calendarId`: `primary`
-- `startTime`: today at `00:00:00` in Mountain Time (ISO 8601 with offset, e.g. `2026-04-25T00:00:00-06:00`)
-- `endTime`: today at `23:59:59` in Mountain Time
+- `startTime`: today at `00:00:00` Mountain Time (ISO 8601, e.g. `2026-05-26T00:00:00-06:00`)
+- `endTime`: 7 days from today at `23:59:59` Mountain Time
 - `timeZone`: `America/Denver`
 - `orderBy`: `startTime`
+- `pageSize`: 50
 
-From the results, **keep only events where ALL of the following are true**:
-1. The event does NOT have a `recurringEventId` field.
-2. The event does NOT have a `recurrence` field.
-
-These are genuinely one-time events. Drop anything that belongs to a
-recurring series.
-
----
-
-## Step 4 — Summarize
-
-### Emails
-Group by sender (use the sender's display name and email address as the heading).
-For each sender, list every email they sent in the window. For each email:
-- Subject line
-- 2–4 bullets covering the key points
-- A separate "Action Items" section with concrete, specific tasks required of the reader (omit this section if there are none)
-
-### Calendar events
-For each non-recurring event:
-- Start and end time (Mountain Time, e.g. "9:00 AM – 10:00 AM MT")
-- Event title
-- Location or video link (if present)
-- One-line description excerpt (if present)
+From the results, flag an event as **"out of the ordinary"** if ANY of the
+following apply:
+1. It does NOT have a `recurringEventId` (a one-time event).
+2. It is a recurring event that was recently modified (its `updated` timestamp
+   is within the last 7 days) — e.g. a cancellation, rescheduling, or update.
+3. Its summary contains keywords suggesting a special commitment:
+   hike, trek, tour, move, speak, visit, trip, tour, ceremony, performance,
+   graduation, wedding, funeral, first, one-time, special.
+4. It lasts 3+ hours (from start to end) during waking hours (6am–10pm).
+5. It has a physical location that is not "home" or a regular meeting room.
+6. The attendee response for the owner is `needsAction` or `tentative`.
 
 ---
 
-## Step 5 — Determine the account owner's email address
+## Step 4 — Determine action items from email
 
-Use the following strategy, in order, stopping at the first successful result:
+Review all collected emails. For each one that requires an action by the
+account owner, create an action item with:
+- A **priority level**: 🔴 High (urgent / time-sensitive / safety), 🟠 Medium
+  (personal / important but not urgent), 🟡 Low (informational but worth noting)
+- A **one-line title** (max 12 words)
+- A **2–3 sentence description** with enough context to act without re-reading
+  the original email
 
-1. Look at the **"To:"** field of every email fetched. Collect all recipient
-   addresses. The address that appears most frequently is almost certainly the
-   account owner's address — use that.
-2. If there is a tie, prefer the address whose domain matches the majority of
-   the other addresses in the "To:" fields.
-3. If still ambiguous, use the first address found in any "To:" field.
+**Rank** all action items by priority (🔴 first, then 🟠, then 🟡), then by
+recency within each tier.
 
-Store this address as `{owner_email}`.
+Select the **top 10** action items. If there are fewer than 10 genuine action
+items, include all of them and do not pad the list.
 
 ---
 
-## Step 6 — Create and label the digest draft
+## Step 5 — Create and deliver the digest
 
-### 6a — Create the draft
+### 5a — Create the draft
 
-Call `create_draft` with the following fields:
-
-**`to`**: `["{owner_email}"]`
-
-**`subject`**: `Morning Digest — {Weekday}, {Month} {Day}, {Year}`
-  e.g. `Morning Digest — Friday, April 25, 2026`
-
-**`htmlBody`**: Use the HTML template below, substituting real content.
+Call `create_draft` with:
+- **`to`**: `["richardlwells@gmail.com"]`
+- **`subject`**: `🌅 Daily Briefing — {Weekday}, {Month} {Day}, {Year}: Top 10 Action Items`
+  e.g. `🌅 Daily Briefing — Tuesday, May 26, 2026: Top 10 Action Items`
+- **`htmlBody`**: use the HTML template below
 
 ```html
-<!DOCTYPE html>
 <html>
-<body style="font-family: Arial, sans-serif; max-width: 700px; margin: auto; color: #222;">
-
-<h2 style="border-bottom: 2px solid #4A90D9; padding-bottom: 8px;">
-  Morning Digest &mdash; {Weekday}, {Month} {Day}, {Year}
-</h2>
-<p style="color: #666; font-size: 0.9em;">Generated at 5:00 AM Mountain Time</p>
-
-<!-- ====== EMAIL SECTION ====== -->
-<h3 style="margin-top: 28px;">&#128139; Email Summary &mdash; Last 24 Hours</h3>
-
-<!-- Repeat the block below for each unique sender -->
-<div style="margin-bottom: 20px; padding: 12px; background: #f9f9f9; border-left: 4px solid #4A90D9;">
-  <h4 style="margin: 0 0 6px 0;">{Sender Name} &lt;{sender@example.com}&gt;</h4>
-  <p style="margin: 0 0 4px 0;"><strong>Subject:</strong> {email subject}</p>
-  <ul style="margin: 4px 0 0 0;">
-    <li><strong>Key Points:</strong>
-      <ul>
-        <li>{point 1}</li>
-        <li>{point 2}</li>
-      </ul>
-    </li>
-    <!-- Only include if there are action items -->
-    <li><strong>Action Items:</strong>
-      <ul>
-        <li>{action item}</li>
-      </ul>
-    </li>
-  </ul>
+<body style="font-family: Arial, sans-serif; max-width: 680px; margin: 0 auto; color: #222;">
+<div style="background: #1a3a5c; color: white; padding: 20px 24px; border-radius: 8px 8px 0 0;">
+  <h2 style="margin:0; font-size: 20px;">☀️ Good Morning, Richard</h2>
+  <p style="margin: 4px 0 0; font-size: 13px; opacity: 0.85;">Daily Briefing · {Weekday}, {Month} {Day}, {Year} · 5:00 AM MDT</p>
 </div>
-<!-- End sender block -->
+<div style="background: #f8f9fb; padding: 20px 24px; border: 1px solid #dde1e7; border-top: none; border-radius: 0 0 8px 8px;">
 
-<!-- If no qualifying emails were found, replace sender blocks with: -->
-<!-- <p><em>No emails received in the last 24 hours.</em></p> -->
+  <h3 style="color: #1a3a5c; border-bottom: 2px solid #1a3a5c; padding-bottom: 6px;">📋 Top 10 Action Items</h3>
 
-<!-- ====== CALENDAR SECTION ====== -->
-<h3 style="margin-top: 28px; border-top: 1px solid #ddd; padding-top: 16px;">
-  &#128197; Non-Recurring Calendar Events Today
-</h3>
+  <table style="width:100%; border-collapse: collapse;">
+    <!-- Repeat the block below for each action item (1–10) -->
+    <tr>
+      <td style="width:28px; vertical-align:top; padding: 10px 8px 10px 0; font-size:18px;">{PRIORITY_EMOJI}</td>
+      <td style="padding: 10px 0; border-bottom: 1px solid #e0e4ea;">
+        <strong>{NUMBER}. {TITLE}</strong><br>
+        <span style="color:#555; font-size:13px;">{DESCRIPTION}</span>
+      </td>
+    </tr>
+    <!-- End action item block -->
+  </table>
 
-<!-- Repeat for each non-recurring event -->
-<div style="margin-bottom: 12px; padding: 10px; background: #f0f7ff; border-left: 4px solid #27AE60;">
-  <p style="margin: 0;"><strong>{Start Time} &ndash; {End Time} MT</strong> &mdash; {Event Title}</p>
-  <!-- Only include lines below if the data exists -->
-  <p style="margin: 4px 0 0 18px; color: #555;">&#128205; {Location or video link}</p>
-  <p style="margin: 4px 0 0 18px; color: #555;">{Brief description}</p>
+  <!-- If fewer than 10 action items, end the table and note how many were found -->
+
+  <h3 style="color: #1a3a5c; border-bottom: 2px solid #1a3a5c; padding-bottom: 6px; margin-top: 28px;">📅 Out-of-the-Ordinary Calendar Events (Next 7 Days)</h3>
+
+  <table style="width:100%; border-collapse: collapse; font-size:14px;">
+    <tr style="background:#eef2f7;">
+      <th style="text-align:left; padding:8px 10px; color:#1a3a5c;">Date/Time</th>
+      <th style="text-align:left; padding:8px 10px; color:#1a3a5c;">Event</th>
+      <th style="text-align:left; padding:8px 10px; color:#1a3a5c;">Why It's Notable</th>
+    </tr>
+    <!-- Repeat for each flagged event -->
+    <tr>
+      <td style="padding:8px 10px; border-bottom:1px solid #e0e4ea;"><strong>{DAY}</strong><br>{TIME}</td>
+      <td style="padding:8px 10px; border-bottom:1px solid #e0e4ea;">{EVENT_TITLE}</td>
+      <td style="padding:8px 10px; border-bottom:1px solid #e0e4ea;">{REASON}</td>
+    </tr>
+    <!-- End event row -->
+  </table>
+
+  <!-- If no flagged events this week: -->
+  <!-- <p style="color:#555; font-size:14px;"><em>No out-of-the-ordinary events in the next 7 days.</em></p> -->
+
+  <p style="margin-top: 24px; font-size: 12px; color: #888; border-top: 1px solid #dde1e7; padding-top: 14px;">
+    This briefing was automatically generated from your Gmail and Google Calendar.<br>
+    Sent daily at 5:00 AM MDT · <em>ClaudeRoutines Daily Summary</em>
+  </p>
 </div>
-<!-- End event block -->
-
-<!-- If no non-recurring events today, replace event blocks with: -->
-<!-- <p><em>No one-time calendar events scheduled for today.</em></p> -->
-
-<hr style="margin-top: 32px;"/>
-<p style="font-size: 0.8em; color: #999;">Automated digest &mdash; ClaudeRoutines</p>
-
 </body>
 </html>
 ```
 
-### 6b — Label the draft for easy retrieval
+### 5b — Deliver the draft to the Inbox
 
-After `create_draft` returns a `messageId`, call `label_message` with:
-- `messageId`: the ID returned by `create_draft`
-- `addLabelIds`: `["INBOX"]`
+After `create_draft` succeeds and returns an `id`, call `label_message` with:
+- `messageId`: the `id` returned by `create_draft`
+- `labelIds`: `["INBOX"]`
 
-`INBOX` is a Gmail system label — its ID is literally the string `"INBOX"`.
-Do **not** call `list_labels` to look it up; use `"INBOX"` directly.
-
-This moves the draft to the Inbox so it arrives like a normal email rather
+This moves the digest to the Inbox so it arrives like a normal email rather
 than sitting silently in the Drafts folder.
 
 > **Note**: The Gmail MCP integration does not expose a send API. The digest
-> is delivered by placing it directly in the Inbox via label assignment.
+> is delivered by placing it directly in the Inbox via `label_message`.
 > If a `send_message` or `send_draft` tool becomes available in a future
 > version, prefer that over `label_message`.
 
@@ -182,12 +170,14 @@ than sitting silently in the Drafts folder.
 
 ## Important rules
 
-- If there are **no emails**, say so clearly; do not omit the section.
-- If there are **no non-recurring calendar events**, say so clearly; do not omit the section.
-- Keep email summaries concise: maximum 4 bullets per email.
-- Action items must be concrete ("Reply to Alice confirming the meeting time")
-  not vague ("Follow up").
+- Never include more than 10 action items.
+- Action items must be concrete and specific ("Text Keith Wells back about the
+  photo-scanning project — he wants 4 copies and offered to pay expenses") not
+  vague ("Follow up with Keith").
+- If there are no genuine action items, say so clearly instead of inventing low-value items.
+- Keep each description to 2–3 sentences max.
 - Strip tracking pixels and HTML boilerplate from email bodies before summarizing.
 - Never include raw HTML or JSON in the digest body.
-- If multiple emails from the same sender arrive in the window, group them all
-  under one sender heading with separate subject/key-points/action-items blocks.
+- For the calendar section, briefly explain *why* each event is flagged (e.g.
+  "One-time event", "3-hour outdoor commitment", "RSVP still pending").
+- If no calendar events are flagged, say so clearly; do not omit the section.
