@@ -72,18 +72,11 @@ For each non-recurring event:
 
 ---
 
-## Step 5 — Determine the account owner's email address
+## Step 5 — Set the account owner's email address
 
-Use the following strategy, in order, stopping at the first successful result:
+The account owner's email address is: **richardlwells@gmail.com**
 
-1. Look at the **"To:"** field of every email fetched. Collect all recipient
-   addresses. The address that appears most frequently is almost certainly the
-   account owner's address — use that.
-2. If there is a tie, prefer the address whose domain matches the majority of
-   the other addresses in the "To:" fields.
-3. If still ambiguous, use the first address found in any "To:" field.
-
-Store this address as `{owner_email}`.
+Store this as `{owner_email}` = `richardlwells@gmail.com`.
 
 ---
 
@@ -161,22 +154,31 @@ Call `create_draft` with the following fields:
 </html>
 ```
 
-### 6b — Label the draft for easy retrieval
+### 6b — Deliver the digest to the Inbox as a new unread message
 
-After `create_draft` returns a `messageId`, call `label_message` with:
+After `create_draft` returns a `messageId`, make **two** label calls in order:
+
+**Call 1 — promote out of Drafts:**
+Call `label_message` with:
 - `messageId`: the ID returned by `create_draft`
-- `addLabelIds`: `["INBOX"]`
+- `addLabelIds`: `["INBOX", "UNREAD"]`
+- `removeLabelIds`: `["DRAFT"]`
 
-`INBOX` is a Gmail system label — its ID is literally the string `"INBOX"`.
-Do **not** call `list_labels` to look it up; use `"INBOX"` directly.
+**Call 2 — ensure it is visible as unread:**
+Call `label_message` again with:
+- `messageId`: same ID
+- `addLabelIds`: `["UNREAD"]`
 
-This moves the draft to the Inbox so it arrives like a normal email rather
-than sitting silently in the Drafts folder.
+All label IDs above are Gmail system labels; their IDs are the literal strings
+`"INBOX"`, `"UNREAD"`, and `"DRAFT"`. Do **not** call `list_labels` to look
+them up.
+
+This removes the draft status and places the digest in the Inbox as a fresh
+unread message, identical in appearance to a received email.
 
 > **Note**: The Gmail MCP integration does not expose a send API. The digest
-> is delivered by placing it directly in the Inbox via label assignment.
-> If a `send_message` or `send_draft` tool becomes available in a future
-> version, prefer that over `label_message`.
+> is delivered by label manipulation. If a `send_message` or `send_draft`
+> tool becomes available in a future version, prefer that.
 
 ---
 
