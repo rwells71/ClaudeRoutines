@@ -161,17 +161,23 @@ Call `create_draft` with the following fields:
 </html>
 ```
 
-### 6b — Label the draft for easy retrieval
+### 6b — Deliver the digest to the Inbox
 
-After `create_draft` returns a `messageId`, call `label_message` with:
-- `messageId`: the ID returned by `create_draft`
-- `addLabelIds`: `["INBOX"]`
+After `create_draft` returns, extract the **message ID** from the response.
+The response is a draft object; the message ID is typically nested under a
+`message.id` field (distinct from the top-level draft `id`). Use whichever
+field in the response represents the underlying Gmail message ID.
 
-`INBOX` is a Gmail system label — its ID is literally the string `"INBOX"`.
-Do **not** call `list_labels` to look it up; use `"INBOX"` directly.
+Call `label_message` with:
+- `messageId`: the message ID extracted above
+- `labelIds`: `["INBOX", "UNREAD"]`
 
-This moves the draft to the Inbox so it arrives like a normal email rather
-than sitting silently in the Drafts folder.
+`INBOX` and `UNREAD` are Gmail system labels — their IDs are literally the
+strings `"INBOX"` and `"UNREAD"`.  Do **not** call `list_labels` to look
+them up; use these strings directly.
+
+Adding `INBOX` moves the message out of Drafts and into the Inbox.
+Adding `UNREAD` marks it as a new, unread message so it stands out.
 
 > **Note**: The Gmail MCP integration does not expose a send API. The digest
 > is delivered by placing it directly in the Inbox via label assignment.
