@@ -72,18 +72,15 @@ For each non-recurring event:
 
 ---
 
-## Step 5 — Determine the account owner's email address
+## Step 5 — Set the account owner's email address
 
-Use the following strategy, in order, stopping at the first successful result:
+The account owner's email address is:
 
-1. Look at the **"To:"** field of every email fetched. Collect all recipient
-   addresses. The address that appears most frequently is almost certainly the
-   account owner's address — use that.
-2. If there is a tie, prefer the address whose domain matches the majority of
-   the other addresses in the "To:" fields.
-3. If still ambiguous, use the first address found in any "To:" field.
+```
+richardlwells@gmail.com
+```
 
-Store this address as `{owner_email}`.
+Store this as `{owner_email}` = `richardlwells@gmail.com`.
 
 ---
 
