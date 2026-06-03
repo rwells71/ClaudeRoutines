@@ -9,70 +9,106 @@ Complete every step below in order. Do not skip any step.
 
 The digest runs at 5:00 AM Mountain Time. Calculate:
 
-- **Email window**: the 24-hour period ending right now (i.e. the last 24 hours).
-  Gmail query: `newer_than:1d`
-- **Calendar window**: today (the current date in Mountain Time), from
-  `00:00:00` to `23:59:59`, timezone `America/Denver`.
+- **Email window**: the 7-day period ending right now (i.e. the last 7 days).
+  Gmail query: `newer_than:7d`
+- **Calendar window – past**: last 7 days (to catch recently-added one-time events that
+  already occurred and may need follow-up).
+- **Calendar window – future**: today through 14 days from now (to surface upcoming
+  unusual events early).
 
 ---
 
 ## Step 2 — Fetch recent emails
 
 Call `search_threads` with:
-- `query`: `newer_than:1d -category:promotions -category:social -category:updates`
+- `query`: `newer_than:7d -category:promotions -category:social`
 - `pageSize`: 50
 
-Repeat with `pageToken` if the response includes one, until all threads are
-collected.
+Repeat with `pageToken` if the response includes one, until all threads are collected.
 
 For each thread, examine the snippet and message metadata already returned.
 If the full body is needed to understand key points or action items, call
 `get_thread` with that thread's ID.
 
-**Skip** clearly automated mail: marketing emails, newsletters, messages from
-`noreply@`, `no-reply@`, `donotreply@`, or `notifications@` addresses, and any
-message with an `List-Unsubscribe` header. Include everything else —
-transactional, human-sent, or important system notifications.
+**Skip** clearly automated / low-value mail:
+- Marketing emails and newsletters.
+- Messages from `noreply@`, `no-reply@`, `donotreply@`.
+- Calendar notification emails (sender `calendar-notification@google.com`).
+- Routine bank/statement-available notices (no action needed beyond awareness).
+- YouTube, Substack, Raspberry Pi Magazine, or similar content newsletters.
+
+**Keep** everything else — human-sent messages, financial alerts requiring action,
+school/family communications, church/organization requests, package tracking,
+and any system alert that implies a decision or response is needed.
 
 ---
 
-## Step 3 — Fetch today's non-recurring calendar events
+## Step 3 — Fetch calendar events (past 7 days + next 14 days)
 
 Call `list_events` with:
 - `calendarId`: `primary`
-- `startTime`: today at `00:00:00` in Mountain Time (ISO 8601 with offset, e.g. `2026-04-25T00:00:00-06:00`)
-- `endTime`: today at `23:59:59` in Mountain Time
+- `startTime`: 7 days ago at `00:00:00` Mountain Time (ISO 8601 with offset)
+- `endTime`: 14 days from today at `23:59:59` Mountain Time
 - `timeZone`: `America/Denver`
 - `orderBy`: `startTime`
+- `pageSize`: 100
 
-From the results, **keep only events where ALL of the following are true**:
-1. The event does NOT have a `recurringEventId` field.
-2. The event does NOT have a `recurrence` field.
+From the results, **identify "out-of-the-ordinary" events** using these criteria
+(an event qualifies if it meets ANY of the following):
 
-These are genuinely one-time events. Drop anything that belongs to a
-recurring series.
+1. **No `recurringEventId`** — it is a one-time event (not part of a recurring series).
+2. **Multiple attendees** from outside the immediate family (i.e. attendees who are
+   not `richardlwells@gmail.com` or `megan.wells@gmail.com`).
+3. **A location** field that is not blank (suggests travel or an offsite meeting).
+4. **Title keywords** that suggest something unusual: "tour", "trek", "mission",
+   "conference", "training", "speak", "visit", "surgery", "appointment",
+   "interview", "birthday", "anniversary", "graduation", or similar one-time milestone words.
+5. The event was **created or updated within the last 7 days** (newly scheduled).
 
 ---
 
-## Step 4 — Summarize
+## Step 4 — Build the Top 10 Action Items
 
-### Emails
-Group by sender (use the sender's display name and email address as the heading).
-For each sender, list every email they sent in the window. For each email:
+Synthesize emails AND calendar events into a single ranked list of the
+**10 most important things the account owner needs to do**.
+
+Ranking criteria (higher = more urgent):
+1. Hard deadlines or time-sensitive dates mentioned explicitly.
+2. Requests from real people (not automated systems) waiting on a reply.
+3. Financial actions (bills due, payments to make, statements to review with decisions).
+4. Upcoming events within 7 days that require preparation.
+5. Standing tasks that were triggered by an email this week.
+
+Format each item as:
+```
+N. [CATEGORY EMOJI] Short title
+   Why it matters / deadline / key detail (one sentence max).
+```
+
+Category emoji guide:
+- ⛪ Church / religious
+- 🏫 School / education
+- 💰 Finance / billing
+- 📦 Shipping / physical
+- 👥 People / relationship
+- 📅 Calendar / scheduling
+- 🔧 Technical / admin
+- 🏥 Health
+- 🏕️ Activity / event
+
+---
+
+## Step 5 — Summarize email details
+
+Group by sender (display name + email address as heading).
+For each sender, list every relevant email they sent in the window. For each email:
 - Subject line
 - 2–4 bullets covering the key points
-- A separate "Action Items" section with concrete, specific tasks required of the reader (omit this section if there are none)
-
-### Calendar events
-For each non-recurring event:
-- Start and end time (Mountain Time, e.g. "9:00 AM – 10:00 AM MT")
-- Event title
-- Location or video link (if present)
-- One-line description excerpt (if present)
+- "Action Items" section with concrete, specific tasks (omit if none)
 
 ---
 
-## Step 5 — Determine the account owner's email address
+## Step 6 — Determine the account owner's email address
 
 Use the following strategy, in order, stopping at the first successful result:
 
@@ -87,94 +123,93 @@ Store this address as `{owner_email}`.
 
 ---
 
-## Step 6 — Create and label the digest draft
+## Step 7 — Create and deliver the digest draft
 
-### 6a — Create the draft
+### 7a — Create the draft
 
-Call `create_draft` with the following fields:
+Call `create_draft` with:
 
 **`to`**: `["{owner_email}"]`
 
-**`subject`**: `Morning Digest — {Weekday}, {Month} {Day}, {Year}`
-  e.g. `Morning Digest — Friday, April 25, 2026`
+**`subject`**: `🌅 Daily Briefing — {Weekday}, {Month} {Day}, {Year}`
+  e.g. `🌅 Daily Briefing — Wednesday, June 3, 2026`
 
 **`htmlBody`**: Use the HTML template below, substituting real content.
 
 ```html
 <!DOCTYPE html>
 <html>
-<body style="font-family: Arial, sans-serif; max-width: 700px; margin: auto; color: #222;">
+<body style="font-family:Arial,sans-serif;max-width:700px;margin:auto;color:#222;">
 
-<h2 style="border-bottom: 2px solid #4A90D9; padding-bottom: 8px;">
-  Morning Digest &mdash; {Weekday}, {Month} {Day}, {Year}
-</h2>
-<p style="color: #666; font-size: 0.9em;">Generated at 5:00 AM Mountain Time</p>
+<div style="background:#1a3a5c;color:white;padding:16px 20px;border-radius:6px 6px 0 0;">
+  <h2 style="margin:0;font-size:20px;">☀️ Good Morning — Daily Briefing</h2>
+  <p style="margin:4px 0 0;font-size:13px;opacity:0.8;">{Weekday}, {Month} {Day}, {Year} · 5:00 AM Mountain Time</p>
+</div>
 
-<!-- ====== EMAIL SECTION ====== -->
-<h3 style="margin-top: 28px;">&#128139; Email Summary &mdash; Last 24 Hours</h3>
+<!-- ====== TOP 10 ACTION ITEMS ====== -->
+<div style="padding:20px;">
+<h3 style="color:#1a3a5c;border-bottom:2px solid #e5e7eb;padding-bottom:6px;">📋 Top 10 Items to Address</h3>
 
-<!-- Repeat the block below for each unique sender -->
-<div style="margin-bottom: 20px; padding: 12px; background: #f9f9f9; border-left: 4px solid #4A90D9;">
-  <h4 style="margin: 0 0 6px 0;">{Sender Name} &lt;{sender@example.com}&gt;</h4>
-  <p style="margin: 0 0 4px 0;"><strong>Subject:</strong> {email subject}</p>
-  <ul style="margin: 4px 0 0 0;">
-    <li><strong>Key Points:</strong>
-      <ul>
-        <li>{point 1}</li>
-        <li>{point 2}</li>
-      </ul>
-    </li>
-    <!-- Only include if there are action items -->
-    <li><strong>Action Items:</strong>
-      <ul>
-        <li>{action item}</li>
-      </ul>
-    </li>
+<table style="width:100%;border-collapse:collapse;">
+  <!-- Repeat this row for each of the 10 items; alternate background #f0f4ff / white -->
+  <tr style="background:#f0f4ff;">
+    <td style="padding:10px 12px;vertical-align:top;width:28px;font-weight:bold;color:#1a3a5c;">{N}.</td>
+    <td style="padding:10px 12px;">
+      <strong>{EMOJI} {Title}</strong><br>
+      <span style="color:#555;font-size:14px;">{One-sentence detail / deadline}</span>
+    </td>
+  </tr>
+</table>
+
+<!-- ====== NOTABLE CALENDAR EVENTS ====== -->
+<h3 style="color:#1a3a5c;border-bottom:2px solid #e5e7eb;padding-bottom:6px;margin-top:28px;">📅 Notable / Out-of-Ordinary Calendar Events</h3>
+
+<!-- Repeat for each notable event; alternate background -->
+<div style="margin-bottom:10px;padding:10px 14px;background:#f0fdf4;border-left:4px solid #16a34a;border-radius:0 4px 4px 0;">
+  <strong>{Date} · {Start}–{End} MT</strong> — {Event Title}<br>
+  <span style="color:#555;font-size:13px;">{Why it's notable / location / attendees}</span>
+</div>
+
+<!-- If no notable calendar events: -->
+<!-- <p><em>No out-of-the-ordinary calendar events in the ±14-day window.</em></p> -->
+
+<!-- ====== EMAIL DETAILS ====== -->
+<h3 style="color:#1a3a5c;border-bottom:2px solid #e5e7eb;padding-bottom:6px;margin-top:28px;">📧 Email Detail — Last 7 Days</h3>
+
+<!-- Repeat for each sender -->
+<div style="margin-bottom:18px;padding:12px;background:#f9f9f9;border-left:4px solid #4A90D9;border-radius:0 4px 4px 0;">
+  <h4 style="margin:0 0 6px 0;color:#1a3a5c;">{Sender Name} &lt;{sender@example.com}&gt;</h4>
+  <p style="margin:0 0 4px 0;"><strong>Subject:</strong> {subject}</p>
+  <ul style="margin:4px 0 0 0;">
+    <li>{key point 1}</li>
+    <li>{key point 2}</li>
+    <!-- Only if action items exist: -->
+    <li><strong>Action:</strong> {specific action required}</li>
   </ul>
 </div>
-<!-- End sender block -->
 
-<!-- If no qualifying emails were found, replace sender blocks with: -->
-<!-- <p><em>No emails received in the last 24 hours.</em></p> -->
+<!-- If no qualifying emails: -->
+<!-- <p><em>No action-requiring emails received in the last 7 days.</em></p> -->
 
-<!-- ====== CALENDAR SECTION ====== -->
-<h3 style="margin-top: 28px; border-top: 1px solid #ddd; padding-top: 16px;">
-  &#128197; Non-Recurring Calendar Events Today
-</h3>
-
-<!-- Repeat for each non-recurring event -->
-<div style="margin-bottom: 12px; padding: 10px; background: #f0f7ff; border-left: 4px solid #27AE60;">
-  <p style="margin: 0;"><strong>{Start Time} &ndash; {End Time} MT</strong> &mdash; {Event Title}</p>
-  <!-- Only include lines below if the data exists -->
-  <p style="margin: 4px 0 0 18px; color: #555;">&#128205; {Location or video link}</p>
-  <p style="margin: 4px 0 0 18px; color: #555;">{Brief description}</p>
+<hr style="margin-top:32px;border:none;border-top:1px solid #e5e7eb;"/>
+<p style="font-size:12px;color:#9ca3af;">Automated digest · ClaudeRoutines · richardlwells@gmail.com</p>
 </div>
-<!-- End event block -->
-
-<!-- If no non-recurring events today, replace event blocks with: -->
-<!-- <p><em>No one-time calendar events scheduled for today.</em></p> -->
-
-<hr style="margin-top: 32px;"/>
-<p style="font-size: 0.8em; color: #999;">Automated digest &mdash; ClaudeRoutines</p>
 
 </body>
 </html>
 ```
 
-### 6b — Label the draft for easy retrieval
+### 7b — Move the draft to the Inbox
 
-After `create_draft` returns a `messageId`, call `label_message` with:
-- `messageId`: the ID returned by `create_draft`
-- `addLabelIds`: `["INBOX"]`
+After `create_draft` returns an `id`, call `label_message` with:
+- `messageId`: the `id` returned by `create_draft`
+- `labelIds`: `["INBOX"]`
 
-`INBOX` is a Gmail system label — its ID is literally the string `"INBOX"`.
-Do **not** call `list_labels` to look it up; use `"INBOX"` directly.
+This moves the digest into the Inbox so it is delivered like a normal email
+rather than sitting in Drafts.
 
-This moves the draft to the Inbox so it arrives like a normal email rather
-than sitting silently in the Drafts folder.
-
-> **Note**: The Gmail MCP integration does not expose a send API. The digest
-> is delivered by placing it directly in the Inbox via label assignment.
+> **Note**: The Gmail MCP does not expose a send API. Inbox delivery is
+> achieved by assigning the `INBOX` label to the draft after creation.
 > If a `send_message` or `send_draft` tool becomes available in a future
 > version, prefer that over `label_message`.
 
@@ -182,12 +217,15 @@ than sitting silently in the Drafts folder.
 
 ## Important rules
 
-- If there are **no emails**, say so clearly; do not omit the section.
-- If there are **no non-recurring calendar events**, say so clearly; do not omit the section.
-- Keep email summaries concise: maximum 4 bullets per email.
-- Action items must be concrete ("Reply to Alice confirming the meeting time")
+- The Top 10 list is the most important part — spend the most effort getting it right.
+- Only include items in the Top 10 that genuinely need the owner's attention;
+  do not pad with routine automated notifications.
+- Keep email detail summaries concise: max 4 bullets per email.
+- Action items must be concrete ("Reply to Lori confirming the June 21st talk topic")
   not vague ("Follow up").
 - Strip tracking pixels and HTML boilerplate from email bodies before summarizing.
 - Never include raw HTML or JSON in the digest body.
+- Birthday or special occasion notes on the calendar should appear as a warm
+  callout at the top of the email (e.g. "🎂 Today is your birthday!").
 - If multiple emails from the same sender arrive in the window, group them all
   under one sender heading with separate subject/key-points/action-items blocks.
