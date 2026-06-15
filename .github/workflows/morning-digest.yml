@@ -1,4 +1,4 @@
-name: Morning Email & Calendar Digest
+name: Morning Priority Digest
 
 # Runs at 5:00 AM Mountain Time every day.
 # Two cron entries handle the DST shift:
@@ -32,7 +32,7 @@ jobs:
             echo 'PROMPT_EOF'
           } >> "$GITHUB_OUTPUT"
 
-      - name: Run Morning Email & Calendar Digest
+      - name: Run Morning Priority Digest
         uses: anthropics/claude-code-action@v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
