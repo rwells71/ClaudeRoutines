@@ -54,7 +54,27 @@ recurring series.
 
 ---
 
-## Step 4 — Summarize
+## Step 4 — Build the Top 10 Action List
+
+Before writing the digest body, scan ALL emails and non-recurring calendar events together and
+produce a **ranked top-10 list of things that require the reader's attention today**.
+
+Ranking criteria (highest → lowest priority):
+1. Time-sensitive actions with a hard deadline (e.g. "show up tonight at 9 PM", "pay by date")
+2. Pending approvals or decisions blocking others
+3. Financial transactions to verify or act on
+4. Invitations / RSVPs that need a response
+5. Professional / work items
+6. Family or household tasks with a near deadline
+7. Everything else, sorted by apparent urgency
+
+For each of the 10 items, write:
+- A **bold one-line title** (≤ 10 words)
+- A single sentence saying exactly what to do and by when
+
+---
+
+## Step 5 — Summarize emails and calendar events
 
 ### Emails
 Group by sender (use the sender's display name and email address as the heading).
@@ -72,7 +92,7 @@ For each non-recurring event:
 
 ---
 
-## Step 5 — Determine the account owner's email address
+## Step 6 — Determine the account owner's email address
 
 Use the following strategy, in order, stopping at the first successful result:
 
@@ -87,7 +107,7 @@ Store this address as `{owner_email}`.
 
 ---
 
-## Step 6 — Create and label the digest draft
+## Step 7 — Create and label the digest draft
 
 ### 6a — Create the draft
 
@@ -110,8 +130,18 @@ Call `create_draft` with the following fields:
 </h2>
 <p style="color: #666; font-size: 0.9em;">Generated at 5:00 AM Mountain Time</p>
 
+<!-- ====== TOP 10 ACTION LIST ====== -->
+<h3 style="margin-top: 20px; color: #c0392b;">&#9989; Top 10 Things To Do Today</h3>
+<ol style="padding-left: 20px;">
+  <!-- Repeat <li> for each of the 10 items -->
+  <li style="margin-bottom: 10px;">
+    <strong>{Action title}</strong> &mdash; {One sentence: what to do and by when}
+  </li>
+  <!-- End item -->
+</ol>
+
 <!-- ====== EMAIL SECTION ====== -->
-<h3 style="margin-top: 28px;">&#128139; Email Summary &mdash; Last 24 Hours</h3>
+<h3 style="margin-top: 28px; border-top: 1px solid #ddd; padding-top: 16px;">&#128139; Email Summary &mdash; Last 24 Hours</h3>
 
 <!-- Repeat the block below for each unique sender -->
 <div style="margin-bottom: 20px; padding: 12px; background: #f9f9f9; border-left: 4px solid #4A90D9;">
