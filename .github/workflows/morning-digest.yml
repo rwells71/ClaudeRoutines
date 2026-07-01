@@ -37,11 +37,8 @@ jobs:
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           prompt: ${{ steps.prompt.outputs.content }}
-          allowed_tools: |
-            mcp__Gmail__search_threads
-            mcp__Gmail__get_thread
-            mcp__Gmail__create_draft
-            mcp__Gmail__label_message
-            mcp__Gmail__list_labels
-            mcp__Google-Calendar__list_calendars
-            mcp__Google-Calendar__list_events
+          # `allowed_tools` is not a real input for claude-code-action@v1 (it is
+          # silently ignored with a warning); the correct mechanism is passing
+          # --allowedTools through claude_args.
+          claude_args: |
+            --allowedTools mcp__Gmail__search_threads,mcp__Gmail__get_thread,mcp__Gmail__create_draft,mcp__Gmail__label_message,mcp__Gmail__list_labels,mcp__Google-Calendar__list_calendars,mcp__Google-Calendar__list_events
