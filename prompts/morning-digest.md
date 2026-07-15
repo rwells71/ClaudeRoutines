@@ -161,22 +161,30 @@ Call `create_draft` with the following fields:
 </html>
 ```
 
-### 6b — Label the draft for easy retrieval
+### 6b — Move the draft to the Inbox
 
-After `create_draft` returns a `messageId`, call `label_message` with:
-- `messageId`: the ID returned by `create_draft`
-- `addLabelIds`: `["INBOX"]`
+After `create_draft` succeeds, you need the underlying **message ID** (not the
+draft ID) to call `label_message`. Follow these steps:
+
+1. Call `search_threads` with query `in:drafts subject:"Morning Digest" newer_than:1h`
+   and `pageSize: 1` to locate the draft thread just created.
+2. From the result, take the **first message's `id`** field — this is the real
+   message ID (a hex string like `19f6575951aec95e`), distinct from the draft's
+   `r-...` ID.
+3. Call `label_message` with:
+   - `messageId`: the hex message ID from step 2
+   - `labelIds`: `["INBOX"]`
 
 `INBOX` is a Gmail system label — its ID is literally the string `"INBOX"`.
 Do **not** call `list_labels` to look it up; use `"INBOX"` directly.
 
-This moves the draft to the Inbox so it arrives like a normal email rather
+This moves the digest to the Inbox so it arrives like a received email rather
 than sitting silently in the Drafts folder.
 
 > **Note**: The Gmail MCP integration does not expose a send API. The digest
 > is delivered by placing it directly in the Inbox via label assignment.
 > If a `send_message` or `send_draft` tool becomes available in a future
-> version, prefer that over `label_message`.
+> version, prefer that over this approach.
 
 ---
 
